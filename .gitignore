@@ -1,0 +1,51 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.*
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Build outputs
+admin/.next/
+frontend/.next/
+.next/
+.next-cache/
+out/
+dist/
+**/dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Coverage
+coverage/
+
+# Vercel/Turbo
+.vercel/
+.turbo/
+
+# IDE
+.vscode/
+.idea/
+
+# Backend runtime artifacts
+backend/uploads/
+backend/herbs_ecommerce.db
+
+# Misc
+**/*.swp
+**/*.swo
+

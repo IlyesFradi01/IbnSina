@@ -9,49 +9,39 @@ import {
   ArrowRightIcon
 } from '@heroicons/react/24/outline';
 
-export default function Home() {
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Premium Turmeric Root",
-      price: 24.99,
-      originalPrice: 29.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.8,
-      reviews: 124,
-      badge: "Best Seller"
-    },
-    {
-      id: 2,
-      name: "Organic Ginger Powder",
-      price: 18.99,
-      originalPrice: 22.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.9,
-      reviews: 89,
-      badge: "Organic"
-    },
-    {
-      id: 3,
-      name: "Lavender Essential Oil",
-      price: 32.99,
-      originalPrice: 39.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.7,
-      reviews: 156,
-      badge: "Premium"
-    },
-    {
-      id: 4,
-      name: "Eucalyptus Leaves",
-      price: 15.99,
-      originalPrice: 19.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.6,
-      reviews: 98,
-      badge: "New"
-    }
-  ];
+type FeaturedProduct = {
+  _id: string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  images?: string; // backend stores single string path
+  isFeatured?: boolean;
+};
+
+async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002';
+  try {
+    const res = await fetch(`${API_URL}/products/featured`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Failed to fetch featured products');
+    const data: FeaturedProduct[] = await res.json();
+    const featured = Array.isArray(data) ? data : [];
+    if (featured.length >= 4) return featured.slice(0, 4);
+
+    // Fallback: fetch latest products to fill remaining slots up to 4
+    const fillCount = 4 - featured.length;
+    const allRes = await fetch(`${API_URL}/products`, { cache: 'no-store' });
+    const allData: FeaturedProduct[] = allRes.ok ? await allRes.json() : [];
+    const existingIds = new Set(featured.map(p => p._id));
+    const fillers = (Array.isArray(allData) ? allData : []).filter(p => !existingIds.has(p._id)).slice(0, fillCount);
+    return [...featured, ...fillers];
+  } catch {
+    return [];
+  }
+}
+
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts();
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
   const categories = [
     { name: "Essential Oils", count: 45, image: "/api/placeholder/400/300" },
@@ -129,51 +119,43 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
+            {featuredProducts.map((product) => {
+              const imgs = typeof product.images === 'string' ? product.images.split(',').map(s => s.trim()).filter(Boolean) : [];
+              const raw = imgs[0];
+              let firstImage = raw || '';
+              if (firstImage && !/^https?:\/\//i.test(firstImage)) {
+                firstImage = firstImage.startsWith('/uploads') ? `${apiBase}${firstImage}` : `${apiBase}/uploads/${encodeURIComponent(firstImage)}`;
+              }
+              return (
+              <div key={product._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
                 <div className="relative">
-                  <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center">
-                    <span className="text-4xl">🌿</span>
+                  <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {firstImage ? (
+                      <img src={firstImage} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl">🌿</span>
+                    )}
                   </div>
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                      {product.badge}
-                    </span>
-                  </div>
-                  <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                    <HeartIcon className="h-5 w-5 text-gray-600" />
-                  </button>
                 </div>
                 
                 <div className="p-4">
                   <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
-                  
-                  <div className="flex items-center mb-2">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <StarIcon 
-                          key={i} 
-                          className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600 ml-2">({product.reviews})</span>
-                  </div>
-                  
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg font-bold text-gray-900">${product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                      <span className="text-lg font-bold text-gray-900">TND {(Number(product.price) || 0).toFixed(3)}</span>
+                      {typeof product.originalPrice === 'number' && (
+                        <span className="text-sm text-gray-500 line-through">TND {product.originalPrice.toFixed(3)}</span>
                       )}
                     </div>
-                    <button className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition-colors">
+                    <Link href="/products" className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition-colors">
                       <ShoppingCartIcon className="h-5 w-5" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
           
           <div className="text-center mt-8">

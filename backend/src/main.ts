@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import * as express from 'express';
 
 async function bootstrap() {
@@ -33,8 +33,8 @@ async function bootstrap() {
     credentials: true,
   });
   
-  // Serve uploads directory
-  const uploadsPath = join(process.cwd(), 'backend', 'uploads');
+  // Serve uploads directory (works in dev and after build)
+  const uploadsPath = resolve(__dirname, '..', 'uploads');
   app.use('/uploads', express.static(uploadsPath));
   
   // Enable validation pipes

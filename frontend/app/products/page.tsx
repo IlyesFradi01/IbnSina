@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { 
   StarIcon, 
@@ -15,119 +15,98 @@ export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('featured');
+  const [products, setProducts] = useState<Array<any>>([]);
+  const [categories, setCategories] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const categories = [
-    { id: 'all', name: 'All Products', count: 156 },
-    { id: 'essential-oils', name: 'Essential Oils', count: 45 },
-    { id: 'dried-herbs', name: 'Dried Herbs', count: 32 },
-    { id: 'tea-blends', name: 'Tea Blends', count: 28 },
-    { id: 'spices', name: 'Spices', count: 67 }
-  ];
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [pRes, cRes] = await Promise.all([
+          fetch(`${apiUrl}/products`, { cache: 'no-store' }),
+          fetch(`${apiUrl}/categories`, { cache: 'no-store' }),
+        ]);
+        if (!pRes.ok) {
+          const t = await pRes.text();
+          throw new Error(`${pRes.status} ${t}`);
+        }
+        const pJson = await pRes.json();
+        setProducts(Array.isArray(pJson) ? pJson : []);
+        if (cRes.ok) {
+          const cJson = await cRes.json();
+          setCategories(Array.isArray(cJson) ? cJson : []);
+        } else {
+          setCategories([]);
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load products');
+        setProducts([]);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
-  const products = [
-    {
-      id: 1,
-      name: "Premium Turmeric Root",
-      price: 24.99,
-      originalPrice: 29.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.8,
-      reviews: 124,
-      badge: "Best Seller",
-      category: "dried-herbs",
-      inStock: true
-    },
-    {
-      id: 2,
-      name: "Organic Ginger Powder",
-      price: 18.99,
-      originalPrice: 22.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.9,
-      reviews: 89,
-      badge: "Organic",
-      category: "spices",
-      inStock: true
-    },
-    {
-      id: 3,
-      name: "Lavender Essential Oil",
-      price: 32.99,
-      originalPrice: 39.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.7,
-      reviews: 156,
-      badge: "Premium",
-      category: "essential-oils",
-      inStock: true
-    },
-    {
-      id: 4,
-      name: "Eucalyptus Leaves",
-      price: 15.99,
-      originalPrice: 19.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.6,
-      reviews: 98,
-      badge: "New",
-      category: "dried-herbs",
-      inStock: false
-    },
-    {
-      id: 5,
-      name: "Chamomile Tea Blend",
-      price: 12.99,
-      originalPrice: 15.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.5,
-      reviews: 67,
-      badge: "Tea",
-      category: "tea-blends",
-      inStock: true
-    },
-    {
-      id: 6,
-      name: "Peppermint Essential Oil",
-      price: 28.99,
-      originalPrice: 34.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.8,
-      reviews: 143,
-      badge: "Popular",
-      category: "essential-oils",
-      inStock: true
-    },
-    {
-      id: 7,
-      name: "Cinnamon Bark",
-      price: 22.99,
-      originalPrice: 27.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.7,
-      reviews: 89,
-      badge: "Spice",
-      category: "spices",
-      inStock: true
-    },
-    {
-      id: 8,
-      name: "Green Tea Blend",
-      price: 16.99,
-      originalPrice: 19.99,
-      image: "/api/placeholder/300/300",
-      rating: 4.6,
-      reviews: 112,
-      badge: "Tea",
-      category: "tea-blends",
-      inStock: true
+  const categoryOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      const cid = String(p?.categoryId ?? '');
+      if (!cid) continue;
+      counts.set(cid, (counts.get(cid) || 0) + 1);
     }
-  ];
+    const base = [{ id: 'all', name: 'All Products', count: products.length }];
+    const rest = (categories || []).map((c: any) => ({
+      id: String(c._id || c.id),
+      name: String(c.name || ''),
+      count: counts.get(String(c._id || c.id)) || 0,
+    }));
+    return [...base, ...rest];
+  }, [products, categories]);
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = useMemo(() => {
+    const list = products.filter((product: any) => {
+      const name = String(product?.name || '').toLowerCase();
+      const matchesSearch = name.includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || String(product?.categoryId || '') === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+    if (sortBy === 'price-low') list.sort((a: any, b: any) => (a?.price ?? 0) - (b?.price ?? 0));
+    else if (sortBy === 'price-high') list.sort((a: any, b: any) => (b?.price ?? 0) - (a?.price ?? 0));
+    else if (sortBy === 'newest') list.sort((a: any, b: any) => new Date(b?.createdAt ?? 0).getTime() - new Date(a?.createdAt ?? 0).getTime());
+    return list;
+  }, [products, searchTerm, selectedCategory, sortBy]);
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+
+  const addToCart = (p: any) => {
+    try {
+      const id = String(p?._id || p?.id || '');
+      if (!id) return;
+      const name = String(p?.name || 'Product');
+      const price = Number(p?.price || 0);
+      const imgs = typeof p?.images === 'string' ? p.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+      let image = imgs[0] || '';
+      if (image && !/^https?:\/\//i.test(image)) {
+        image = image.startsWith('/uploads') ? `${apiBase}${image}` : `${apiBase}/uploads/${encodeURIComponent(image)}`;
+      }
+      const raw = localStorage.getItem('cart') || '[]';
+      const cart = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
+      const idx = cart.findIndex((it: any) => String(it.id) === id);
+      if (idx >= 0) {
+        cart[idx].quantity = (Number(cart[idx].quantity) || 0) + 1;
+      } else {
+        cart.push({ id, name, price, quantity: 1, image });
+      }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      window.dispatchEvent(new Event('cartUpdated'));
+    } catch {}
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,7 +156,7 @@ export default function Products() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Categories</h3>
               <div className="space-y-2">
-                {categories.map((category) => (
+                {categoryOptions.map((category) => (
                   <button
                     key={category.id}
                     onClick={() => setSelectedCategory(category.id)}
@@ -201,7 +180,7 @@ export default function Products() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-6">
               <p className="text-gray-600">
-                Showing {filteredProducts.length} of {products.length} products
+                {loading ? 'Loading products...' : `Showing ${filteredProducts.length} of ${products.length} products`}
               </p>
               <div className="flex items-center space-x-2">
                 <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-400" />
@@ -209,7 +188,12 @@ export default function Products() {
               </div>
             </div>
 
-            {filteredProducts.length === 0 ? (
+            {error ? (
+              <div className="text-center py-12">
+                <h3 className="text-lg font-semibold text-red-600 mb-2">{error}</h3>
+                <p className="text-gray-600">Please try again later.</p>
+              </div>
+            ) : filteredProducts.length === 0 && !loading ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
@@ -219,21 +203,49 @@ export default function Products() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
-                  <div key={product.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
+                {filteredProducts.map((product) => {
+                  const detailId = String(product?._id || '');
+                  return (
+                  <div key={detailId || String(product.id || Math.random())} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">
                     <div className="relative">
-                      <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center">
-                        <span className="text-4xl">🌿</span>
-                      </div>
+                      {detailId ? (
+                      <Link href={`/products/${detailId}`}>
+                        <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center overflow-hidden">
+                          {(() => {
+                            const imgs = typeof product?.images === 'string' ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                            const raw = imgs[0];
+                            if (!raw || raw.startsWith('blob:')) return <span className="text-4xl">🌿</span>;
+                            let src = raw;
+                            if (!/^https?:\/\//i.test(raw)) {
+                              src = raw.startsWith('/uploads') ? `${apiBase}${raw}` : `${apiBase}/uploads/${encodeURIComponent(raw)}`;
+                            }
+                            // eslint-disable-next-line @next/next/no-img-element
+                            return <img src={src} alt={product.name} className="w-full h-full object-cover" />;
+                          })()}
+                        </div>
+                      </Link>
+                      ) : (
+                        <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center overflow-hidden">
+                          {(() => {
+                            const imgs = typeof product?.images === 'string' ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
+                            const raw = imgs[0];
+                            if (!raw || raw.startsWith('blob:')) return <span className="text-4xl">🌿</span>;
+                            let src = raw;
+                            if (!/^https?:\/\//i.test(raw)) {
+                              src = raw.startsWith('/uploads') ? `${apiBase}${raw}` : `${apiBase}/uploads/${encodeURIComponent(raw)}`;
+                            }
+                            // eslint-disable-next-line @next/next/no-img-element
+                            return <img src={src} alt={product.name} className="w-full h-full object-cover" />;
+                          })()}
+                        </div>
+                      )}
                       <div className="absolute top-3 left-3">
                         <span className="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                          {product.badge}
+                          {product.isFeatured ? 'Featured' : 'Product'}
                         </span>
                       </div>
-                      <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                        <HeartIcon className="h-5 w-5 text-gray-600" />
-                      </button>
-                      {!product.inStock && (
+                      
+                      {!(product?.stock > 0) && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-t-xl flex items-center justify-center">
                           <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                             Out of Stock
@@ -243,41 +255,42 @@ export default function Products() {
                     </div>
                     
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
+                      {detailId ? (
+                      <Link href={`/products/${detailId}`} className="hover:underline">
+                        <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
+                      </Link>
+                      ) : (
+                        <h3 className="font-semibold text-gray-900 mb-2">{product.name}</h3>
+                      )}
                       
-                      <div className="flex items-center mb-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <StarIcon 
-                              key={i} 
-                              className={`h-4 w-4 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600 ml-2">({product.reviews})</span>
-                      </div>
+                   
                       
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className="text-lg font-bold text-gray-900">${product.price}</span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-gray-500 line-through">${product.originalPrice}</span>
+                          <span className="text-lg font-bold text-gray-900">{`TND ${product.price}`}</span>
+                          {product.originalPrice != null && product.originalPrice > 0 && (
+                            <span className="text-sm text-gray-500 line-through">{`TND ${product.originalPrice}`}</span>
                           )}
                         </div>
                         <button 
-                          disabled={!product.inStock}
+                          disabled={!(product?.stock > 0)}
                           className={`p-2 rounded-lg transition-colors ${
-                            product.inStock 
+                            product?.stock > 0 
                               ? 'bg-green-600 text-white hover:bg-green-700' 
                               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          }`}
+                          } flex items-center gap-2 px-3`}
+                          onClick={() => addToCart(product)}
+                          aria-label="Add to cart"
+                          title={product?.stock > 0 ? 'Add to cart' : 'Sold out'}
                         >
                           <ShoppingCartIcon className="h-5 w-5" />
+                         
                         </button>
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+                })}
               </div>
             )}
 

@@ -1,23 +1,32 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
+// TypeORM user repository removed to avoid DataSource requirement when not configured
 import * as bcrypt from 'bcryptjs';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+
+type AdminDoc = {
+  _id: any;
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: string;
+};
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    @InjectModel('Admin') private readonly adminModel: Model<AdminDoc>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
-    const user = await this.usersRepository.findOne({ where: { email } });
-    if (user && await bcrypt.compare(password, user.password)) {
-      const { password, ...result } = user;
-      return result;
+    // Admin Mongo collection
+    const adminDoc = await this.adminModel.findOne({ email }).lean<AdminDoc>().exec();
+    if (adminDoc && adminDoc.password && await bcrypt.compare(password, adminDoc.password)) {
+      const { password: _omit, ...rest } = adminDoc;
+      return { ...rest, id: adminDoc._id, role: adminDoc.role || 'admin' } as any;
     }
     return null;
   }
@@ -42,15 +51,28 @@ export class AuthService {
     firstName: string;
     lastName: string;
   }) {
+    const exists = await this.adminModel.findOne({ email: userData.email }).lean();
+    if (exists) {
+      throw new UnauthorizedException('User already exists');
+    }
     const hashedPassword = await bcrypt.hash(userData.password, 10);
-    const user = this.usersRepository.create({
-      ...userData,
+    const created = await this.adminModel.create({
+      email: userData.email,
       password: hashedPassword,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      role: 'admin',
     });
-    return await this.usersRepository.save(user);
+    const { password, ...rest } = (created.toObject ? created.toObject() : created) as any;
+    return rest;
   }
 
-  async findUserById(id: number): Promise<User> {
-    return await this.usersRepository.findOne({ where: { id } });
+  async findUserById(id: any): Promise<any> {
+    try {
+      const doc = await this.adminModel.findById(id).lean();
+      return doc || null;
+    } catch {
+      return null;
+    }
   }
 }

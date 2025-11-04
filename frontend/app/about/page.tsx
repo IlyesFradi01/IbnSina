@@ -33,22 +33,28 @@ export default function About() {
 
   const team = [
     {
-      name: "Dr. Sarah Ahmed",
+      name: "Dr. Ahmed Sabagh",
       role: "Chief Herbalist",
       image: "/api/placeholder/200/200",
-      bio: "15+ years of experience in traditional medicine and herbal therapy."
+      
     },
     {
-      name: "Mohammed Hassan",
-      role: "Quality Director",
+      name: "Dr. Mohmoud Chaaraoui",
+      role: "Chief Herbalist",
       image: "/api/placeholder/200/200",
-      bio: "Expert in quality control and product testing with a focus on authenticity."
+
     },
     {
-      name: "Fatima Al-Zahra",
-      role: "Sustainability Coordinator",
+      name: "Dr. Adel Abdaal",
+      role: "Chief Herbalist",
       image: "/api/placeholder/200/200",
-      bio: "Leading our efforts in sustainable sourcing and environmental responsibility."
+    
+    },
+    {
+      name: "Dr. Abd Taweb Hsine",
+      role: "Chief Herbalist",
+      image: "/api/placeholder/200/200",
+     
     }
   ];
 
@@ -148,7 +154,7 @@ export default function About() {
             <p className="text-lg text-gray-600">The experts behind our quality products</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {team.map((member, index) => (
               <div key={index} className="text-center">
                 <div className="w-32 h-32 bg-gradient-to-br from-green-100 to-emerald-200 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -156,7 +162,7 @@ export default function About() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-1">{member.name}</h3>
                 <p className="text-green-600 font-medium mb-2">{member.role}</p>
-                <p className="text-gray-600 text-sm">{member.bio}</p>
+              
               </div>
             ))}
           </div>

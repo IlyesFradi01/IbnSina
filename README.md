@@ -75,7 +75,7 @@ IBN SINA/
 
 - **E-commerce Website**: http://localhost:3000
 - **Admin Dashboard**: http://localhost:3002
-- **API Documentation**: http://localhost:3001 (when running)
+- **API Server**: Configure `NEXT_PUBLIC_API_URL` to your backend base URL (example: `http://localhost:3002`)
 
 ## 🛠️ Features
 
@@ -88,9 +88,16 @@ IBN SINA/
 - ✅ About Us and Contact pages
 - ✅ Mobile-optimized design
 
+#### Recent updates
+- Product detail page at `/products/[id]` now fetches product data by id and supports add-to-cart
+- Homepage Featured Products now resolve first image from comma-separated `images` and fix relative URLs via `NEXT_PUBLIC_API_URL`
+- Admin sidebar: `Settings` replaced by `Logout` (clears `adminToken` and redirects to `/login`)
+- Footer: Updated Facebook link and added WhatsApp link
+- Contact page: Embedded Google Map pinned to `VH92+76W, Kalâa Kebira`
+
 ### Backend (API)
 - ✅ RESTful API with NestJS
-- ✅ SQLite database with TypeORM
+- ✅ MongoDB via Mongoose (update your connection string accordingly)
 - ✅ JWT authentication
 - ✅ Role-based access control
 - ✅ Product management endpoints
@@ -173,6 +180,22 @@ The platform uses a consistent design system with:
 ### Frontend Deployment
 1. Build the production version
 2. Deploy to Vercel, Netlify, or your preferred platform
+
+### Environment variables
+
+Create `.env.local` in `frontend/`:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3002
+```
+
+Create `.env` in `admin/` (used for client fetches as well):
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:3002
+```
+
+Adjust the URL to your backend origin in all environments.
 
 ### Admin Dashboard Deployment
 1. Build the production version

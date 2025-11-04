@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { 
   MagnifyingGlassIcon, 
@@ -14,6 +14,43 @@ import {
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [favCount, setFavCount] = useState(0);
+
+  useEffect(() => {
+    const computeCounts = () => {
+      try {
+        const cartRaw = localStorage.getItem('cart') || '[]';
+        const cart = JSON.parse(cartRaw);
+        const c = Array.isArray(cart) ? cart.length : 0;
+        setCartCount(c);
+      } catch {
+        setCartCount(0);
+      }
+      try {
+        const favRaw = localStorage.getItem('favorites') || '[]';
+        const fav = JSON.parse(favRaw);
+        const f = Array.isArray(fav) ? fav.length : 0;
+        setFavCount(f);
+      } catch {
+        setFavCount(0);
+      }
+    };
+    computeCounts();
+    const onStorage = (e: StorageEvent) => {
+      if (!e || (e.key !== 'cart' && e.key !== 'favorites')) return;
+      computeCounts();
+    };
+    const onCustom = () => computeCounts();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('cartUpdated', onCustom as any);
+    window.addEventListener('favoritesUpdated', onCustom as any);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('cartUpdated', onCustom as any);
+      window.removeEventListener('favoritesUpdated', onCustom as any);
+    };
+  }, []);
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -48,17 +85,7 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Search bar */}
-          <div className="flex-1 max-w-lg mx-8 hidden md:block">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search for herbs, oils, products..."
-                className="w-full px-4 py-2 pl-10 pr-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
-              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            </div>
-          </div>
+       
 
           {/* Right side icons */}
           <div className="flex items-center space-x-4">
@@ -70,26 +97,18 @@ const Header = () => {
               <MagnifyingGlassIcon className="h-6 w-6" />
             </button>
 
-            {/* Wishlist */}
-            <button className="p-2 text-gray-600 hover:text-gray-900 relative">
-              <HeartIcon className="h-6 w-6" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
-              </span>
-            </button>
+          
+          
 
             {/* Cart */}
-            <button className="p-2 text-gray-600 hover:text-gray-900 relative">
+            <Link href="/cart" className="p-2 text-gray-600 hover:text-gray-900 relative">
               <ShoppingCartIcon className="h-6 w-6" />
               <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                0
+                {cartCount}
               </span>
-            </button>
+            </Link>
 
-            {/* User account */}
-            <button className="p-2 text-gray-600 hover:text-gray-900">
-              <UserIcon className="h-6 w-6" />
-            </button>
+          
 
             {/* Mobile menu button */}
             <button

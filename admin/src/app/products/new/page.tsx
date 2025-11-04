@@ -11,6 +11,7 @@ import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport } fro
 
 export default function NewProduct() {
   const router = useRouter();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -75,10 +76,28 @@ export default function NewProduct() {
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const newImages = files.map(file => URL.createObjectURL(file));
-    setImages(prev => [...prev, ...newImages]);
+    if (files.length === 0) return;
+    setUploading(true);
+    try {
+      const form = new FormData();
+      files.forEach((f) => form.append('files', f));
+      const res = await fetch(`${apiUrl}/uploads`, { method: 'POST', body: form });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Upload failed: ${res.status} ${txt}`);
+      }
+      const data = await res.json();
+      const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
+      if (urls.length === 0) throw new Error('No URLs returned from upload');
+      setImages(prev => [...prev, ...urls]);
+    } catch (err: any) {
+      setError(err?.message || 'Image upload failed');
+      showToast('error', err?.message || 'Image upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -112,7 +131,6 @@ export default function NewProduct() {
     setError(null);
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
       const payload = {
         ...formData,
         price: Number(formData.price),
@@ -316,88 +334,7 @@ export default function NewProduct() {
             </div>
           </div>
 
-          {/* Product Details */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Details</h2>
-            <div className="space-y-6">
-              <div>
-                <label htmlFor="benefits" className="block text-sm font-medium text-gray-700 mb-2">
-                  Health Benefits
-                </label>
-                <textarea
-                  id="benefits"
-                  name="benefits"
-                  rows={3}
-                  value={formData.benefits}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="List the health benefits of this product..."
-                />
-              </div>
-
-              <div>
-                <label htmlFor="usageInstructions" className="block text-sm font-medium text-gray-700 mb-2">
-                  Usage Instructions
-                </label>
-                <textarea
-                  id="usageInstructions"
-                  name="usageInstructions"
-                  rows={3}
-                  value={formData.usageInstructions}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="How to use this product..."
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="ingredients" className="block text-sm font-medium text-gray-700 mb-2">
-                    Ingredients
-                  </label>
-                  <textarea
-                    id="ingredients"
-                    name="ingredients"
-                    rows={3}
-                    value={formData.ingredients}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="List the ingredients..."
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-2">
-                    Weight/Size
-                  </label>
-                  <input
-                    type="text"
-                    id="weight"
-                    name="weight"
-                    value={formData.weight}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="e.g., 100g, 50ml"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="origin" className="block text-sm font-medium text-gray-700 mb-2">
-                  Origin
-                </label>
-                <input
-                  type="text"
-                  id="origin"
-                  name="origin"
-                  value={formData.origin}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="e.g., India, Morocco"
-                />
-              </div>
-            </div>
-          </div>
+         
 
           {/* Images */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -456,29 +393,21 @@ export default function NewProduct() {
             <div className="space-y-4">
               <div className="flex items-center">
                 <input
-                  id="isActive"
-                  name="isActive"
+                  id="soldOut"
+                  name="soldOut"
                   type="checkbox"
-                  checked={formData.isActive}
-                  onChange={handleChange}
+                  checked={(Number(formData.stock || '0') <= 0)}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setFormData(prev => ({
+                      ...prev,
+                      stock: checked ? '0' : (prev.stock && Number(prev.stock) > 0 ? prev.stock : '1'),
+                    }));
+                  }}
                   className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                 />
-                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-                  Product is active
-                </label>
-              </div>
-
-              <div className="flex items-center">
-                <input
-                  id="isFeatured"
-                  name="isFeatured"
-                  type="checkbox"
-                  checked={formData.isFeatured}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <label htmlFor="isFeatured" className="ml-2 block text-sm text-gray-900">
-                  Featured product
+                <label htmlFor="soldOut" className="ml-2 block text-sm text-gray-900">
+                  Sold out
                 </label>
               </div>
             </div>

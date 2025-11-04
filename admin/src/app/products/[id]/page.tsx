@@ -229,34 +229,7 @@ export default function ProductView() {
             </div>
           </div>
 
-          {/* Product Details */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Details</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Health Benefits</label>
-                <p className="text-gray-900">{product.benefits || '—'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Usage Instructions</label>
-                <p className="text-gray-900">{product.usageInstructions || '—'}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Ingredients</label>
-                <p className="text-gray-900">{product.ingredients || '—'}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Weight/Size</label>
-                  <p className="text-gray-900">{product.weight || '—'}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Origin</label>
-                  <p className="text-gray-900">{product.origin || '—'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+       
 
           {/* Status */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -270,14 +243,7 @@ export default function ProductView() {
                   {product.isActive ? 'Active' : 'Inactive'}
                 </span>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Featured</label>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  product.isFeatured ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {product.isFeatured ? 'Yes' : 'No'}
-                </span>
-              </div>
+              
             </div>
           </div>
         </div>

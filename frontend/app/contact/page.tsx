@@ -16,11 +16,35 @@ export default function Contact() {
     subject: '',
     message: ''
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+    if (!formData.name || !formData.message) {
+      setStatus('Please provide your name and a message.');
+      return;
+    }
+    setSubmitting(true);
+    setStatus(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+      const res = await fetch(`${apiUrl}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || 'Failed to send message');
+      }
+      setStatus('Message sent successfully. We will get back to you soon.');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+    } catch (err: any) {
+      setStatus(err?.message || 'Could not send your message. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -98,6 +122,9 @@ export default function Contact() {
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Send us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {status ? (
+                  <div className={`text-sm ${status.startsWith('Message sent') ? 'text-green-700' : 'text-red-600'}`}>{status}</div>
+                ) : null}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
@@ -165,10 +192,11 @@ export default function Contact() {
                 
                 <button
                   type="submit"
-                  className="w-full bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center"
+                  className="w-full bg-green-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center disabled:opacity-60"
+                  disabled={submitting}
                 >
                   <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
-                  Send Message
+                  {submitting ? 'Sending…' : 'Send Message'}
                 </button>
               </form>
             </div>
@@ -180,7 +208,7 @@ export default function Contact() {
               {/* Map */}
               <div className="rounded-lg h-64 overflow-hidden mb-6 shadow-lg">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3204.123456789!2d10.6412!3d35.8256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x130275f1a8b4b4b5%3A0x1234567890abcdef!2sKal%C3%A2a%20Kebira%2C%20Tunisia!5e0!3m2!1sen!2stn!4v1234567890"
+                  src="https://www.google.com/maps?q=VH92%2B76W%2C%20Kal%C3%A2a%20Kebira&z=16&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

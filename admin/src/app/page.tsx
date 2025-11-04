@@ -1,59 +1,87 @@
+"use client";
+
 import { 
   ShoppingBagIcon, 
   UsersIcon, 
   CurrencyDollarIcon, 
   ChartBarIcon,
   ArrowUpIcon,
-  ArrowDownIcon
+  ArrowDownIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline';
+import { useEffect, useMemo, useState } from 'react';
+
+type Order = {
+  _id: string;
+  total: number;
+  status?: string;
+  createdAt?: string;
+  shipping: { firstName?: string; lastName: string };
+};
+
+type Product = { _id: string; name: string };
 
 export default function Dashboard() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+        const [ordersRes, productsRes] = await Promise.all([
+          fetch(`${apiUrl}/orders`, { cache: 'no-store' }),
+          fetch(`${apiUrl}/products/open`, { cache: 'no-store' }).catch(() => null),
+        ]);
+        if (!ordersRes.ok) throw new Error(await ordersRes.text());
+        const ordersData = await ordersRes.json();
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        if (productsRes && productsRes.ok) {
+          const productsData = await productsRes.json();
+          setProducts(Array.isArray(productsData) ? productsData : []);
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const totalRevenue = useMemo(() => {
+    return orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  }, [orders]);
+
+  const totalOrders = orders.length;
+  const totalCustomers = useMemo(() => {
+    const setNames = new Set<string>();
+    orders.forEach(o => setNames.add([o.shipping?.firstName, o.shipping?.lastName].filter(Boolean).join(' ').trim() || 'Unknown'));
+    return setNames.size;
+  }, [orders]);
+
   const stats = [
-    {
-      name: 'Total Revenue',
-      value: '$45,231',
-      change: '+12.5%',
-      changeType: 'increase',
-      icon: CurrencyDollarIcon,
-    },
-    {
-      name: 'Total Orders',
-      value: '1,234',
-      change: '+8.2%',
-      changeType: 'increase',
-      icon: ShoppingBagIcon,
-    },
-    {
-      name: 'Total Customers',
-      value: '2,456',
-      change: '+15.3%',
-      changeType: 'increase',
-      icon: UsersIcon,
-    },
-    {
-      name: 'Conversion Rate',
-      value: '3.2%',
-      change: '-2.1%',
-      changeType: 'decrease',
-      icon: ChartBarIcon,
-    },
+    { name: 'Total Revenue', value: `TND ${totalRevenue.toFixed(3)}`, change: '', changeType: 'increase', icon: CurrencyDollarIcon },
+    { name: 'Total Orders', value: String(totalOrders), change: '', changeType: 'increase', icon: ShoppingBagIcon },
+    { name: 'Total Customers', value: String(totalCustomers), change: '', changeType: 'increase', icon: UsersIcon },
+    { name: 'Shipped/Delivered', value: String(orders.filter(o => ['shipped','delivered','confirmed'].includes(o.status || '')).length), change: '', changeType: 'increase', icon: ChartBarIcon },
   ];
 
-  const recentOrders = [
-    { id: 'ORD-001', customer: 'Ahmed Hassan', amount: '$89.99', status: 'Completed', date: '2024-01-15' },
-    { id: 'ORD-002', customer: 'Fatima Al-Zahra', amount: '$124.50', status: 'Processing', date: '2024-01-15' },
-    { id: 'ORD-003', customer: 'Mohammed Ali', amount: '$67.25', status: 'Pending', date: '2024-01-14' },
-    { id: 'ORD-004', customer: 'Sarah Ahmed', amount: '$156.75', status: 'Shipped', date: '2024-01-14' },
-    { id: 'ORD-005', customer: 'Omar Khalil', amount: '$98.00', status: 'Completed', date: '2024-01-13' },
-  ];
+  const recentOrders = useMemo(() => {
+    return orders.slice(0, 5).map(o => ({
+      id: o._id,
+      customer: [o.shipping?.firstName, o.shipping?.lastName].filter(Boolean).join(' ') || 'Unknown',
+      amount: `TND ${(o.total ?? 0).toFixed(3)}`,
+      status: o.status || 'pending',
+      date: o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '',
+    }));
+  }, [orders]);
 
-  const topProducts = [
-    { name: 'Premium Turmeric Root', sales: 45, revenue: '$1,125' },
-    { name: 'Lavender Essential Oil', sales: 38, revenue: '$1,254' },
-    { name: 'Organic Ginger Powder', sales: 32, revenue: '$608' },
-    { name: 'Eucalyptus Leaves', sales: 28, revenue: '$448' },
-    { name: 'Chamomile Tea Blend', sales: 25, revenue: '$325' },
-  ];
+  const topProducts = products.slice(0, 5).map(p => ({ name: p.name, sales: '-', revenue: '-' }));
 
   return (
     <div className="p-6">
@@ -98,8 +126,35 @@ export default function Dashboard() {
           <div className="px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Recent Orders</h3>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          {/* Mobile: card list */}
+          <div className="p-4 space-y-3 md:hidden">
+            {recentOrders.length === 0 ? (
+              <div className="text-sm text-gray-600">No recent orders.</div>
+            ) : recentOrders.map((order) => (
+              <div key={order.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-semibold text-gray-900 truncate break-all max-w-[70%]">{order.id}</div>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    order.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                    order.status === 'Processing' ? 'bg-yellow-100 text-yellow-800' :
+                    order.status === 'Shipped' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {order.status}
+                  </span>
+                </div>
+                <div className="mt-2 text-sm text-gray-600">{order.customer}</div>
+                <div className="mt-1 text-sm text-gray-900">{order.amount}</div>
+                {order.date ? (<div className="mt-1 text-xs text-gray-500">{order.date}</div>) : null}
+                <div className="mt-3">
+                  <a href="/orders" className="text-xs text-green-700 hover:underline">View all orders</a>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop: table */}
+          <div className="overflow-x-auto hidden md:block no-scrollbar" style={{ scrollbarWidth: 'none' as any, msOverflowStyle: 'none' as any }}>
+            <table className="w-full table-fixed md:table-auto divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -145,78 +200,74 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Top Products */}
+        {/* Quick Actions (moved here) */}
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Top Products</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div key={product.name} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                      <span className="text-green-600 font-semibold text-sm">{index + 1}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.sales} sales</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-900">{product.revenue}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <a
+                href="/products/new"
+                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center">
+                  <ShoppingBagIcon className="h-8 w-8 text-green-600 mr-4" />
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">Add New Product</h4>
+                    <p className="text-gray-600">Create a new product listing</p>
                   </div>
                 </div>
-              ))}
+              </a>
+              <a
+                href="/categories/new"
+                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center">
+                  <ChartBarIcon className="h-8 w-8 text-blue-600 mr-4" />
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">Manage Categories</h4>
+                    <p className="text-gray-600">Organize your product categories</p>
+                  </div>
+                </div>
+              </a>
+              <a
+                href="/orders"
+                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center">
+                  <UsersIcon className="h-8 w-8 text-purple-600 mr-4" />
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">View All Orders</h4>
+                    <p className="text-gray-600">Manage customer orders</p>
+                  </div>
+                </div>
+              </a>
+              <a
+                href="/messages"
+                className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center">
+                  <ChatBubbleLeftRightIcon className="h-8 w-8 text-amber-600 mr-4" />
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">View Messages</h4>
+                    <p className="text-gray-600">Review and respond to contacts</p>
+                  </div>
+                </div>
+              </a>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
-            href="/products/new"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center">
-              <ShoppingBagIcon className="h-8 w-8 text-green-600 mr-4" />
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900">Add New Product</h4>
-                <p className="text-gray-600">Create a new product listing</p>
-              </div>
-            </div>
-          </a>
-          
-          <a
-            href="/categories/new"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center">
-              <ChartBarIcon className="h-8 w-8 text-blue-600 mr-4" />
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900">Manage Categories</h4>
-                <p className="text-gray-600">Organize your product categories</p>
-              </div>
-            </div>
-          </a>
-          
-          <a
-            href="/orders"
-            className="bg-white rounded-lg shadow p-6 hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-purple-600 mr-4" />
-              <div>
-                <h4 className="text-lg font-semibold text-gray-900">View All Orders</h4>
-                <p className="text-gray-600">Manage customer orders</p>
-              </div>
-            </div>
-          </a>
-        </div>
-      </div>
     </div>
   );
 }
+
+/* Hide scrollbar for elements with .no-scrollbar */
+<style jsx global>{`
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`}</style>
+
+

@@ -130,7 +130,8 @@ export default function EditProduct() {
           if (!data?.secure_url) throw new Error('No secure_url from Cloudinary');
           uploaded.push(String(data.secure_url));
         }
-        setImages(prev => [...prev, ...uploaded]);
+        // Put newly uploaded images first so they show on the storefront
+        setImages(prev => [...uploaded, ...prev]);
       } else {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
         const form = new FormData();
@@ -142,7 +143,7 @@ export default function EditProduct() {
         }
         const data = await res.json();
         const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
-        setImages(prev => [...prev, ...urls]);
+        setImages(prev => [...urls, ...prev]);
       }
     } catch (err) {
       setError((err as any)?.message || 'Image upload failed');
@@ -161,13 +162,15 @@ export default function EditProduct() {
     
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+      // Normalize, trim, and deduplicate images, preserving order
+      const normalized = Array.from(new Set(images.map((s) => String(s).trim()).filter(Boolean)));
       const payload: any = {
         ...formData,
         price: formData.price ? Number(formData.price) : 0,
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
         stock: formData.stock ? Number(formData.stock) : 0,
         categoryId: formData.categoryId || undefined,
-        images: images.join(','),
+        images: normalized.join(','),
       };
       const res = await fetch(`${apiUrl}/products/open/${productId}`, {
         method: 'PATCH',

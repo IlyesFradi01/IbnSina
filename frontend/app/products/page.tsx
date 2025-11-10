@@ -223,8 +223,9 @@ export default function Products() {
                       <Link href={`/products/${detailId}`}>
                         <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center overflow-hidden">
                           {(() => {
-                            const imgs = typeof product?.images === 'string' ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-                            const raw = imgs[0];
+                            const imgs = (typeof product?.images === 'string' ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+                            const httpsFirst = imgs.find((u: string) => /^https?:\/\//i.test(u)) || imgs[0];
+                            const raw = httpsFirst;
                             if (!raw || raw.startsWith('blob:')) return <span className="text-4xl">🌿</span>;
                             let src = raw;
                             if (!/^https?:\/\//i.test(raw)) {
@@ -245,7 +246,11 @@ export default function Products() {
                                 alt={product.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                                  try {
+                                    // Avoid infinite logo override if https already failed; just hide broken image
+                                    const el = (e.currentTarget as HTMLImageElement);
+                                    el.style.visibility = 'hidden';
+                                  } catch {}
                                 }}
                               />
                             );
@@ -255,8 +260,9 @@ export default function Products() {
                       ) : (
                         <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center overflow-hidden">
                           {(() => {
-                            const imgs = typeof product?.images === 'string' ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
-                            const raw = imgs[0];
+                            const imgs = (typeof product?.images === 'string' ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+                            const httpsFirst = imgs.find((u: string) => /^https?:\/\//i.test(u)) || imgs[0];
+                            const raw = httpsFirst;
                             if (!raw || raw.startsWith('blob:')) return <span className="text-4xl">🌿</span>;
                             let src = raw;
                             if (!/^https?:\/\//i.test(raw)) {
@@ -277,7 +283,10 @@ export default function Products() {
                                 alt={product.name}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                                  try {
+                                    const el = (e.currentTarget as HTMLImageElement);
+                                    el.style.visibility = 'hidden';
+                                  } catch {}
                                 }}
                               />
                             );

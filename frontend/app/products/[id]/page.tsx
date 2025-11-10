@@ -44,9 +44,15 @@ export default function ProductPage() {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
   const uploadsBase = apiBase || '/api';
   const resolvedImages = useMemo(() => {
-    const images: string[] = typeof product?.images === 'string'
+    const images: string[] = (typeof product?.images === 'string'
       ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean)
-      : [];
+      : []).slice();
+    // Prefer https URLs first if present
+    images.sort((a, b) => {
+      const ah = /^https?:\/\//i.test(a) ? 1 : 0;
+      const bh = /^https?:\/\//i.test(b) ? 1 : 0;
+      return bh - ah;
+    });
     return images.map((raw) => {
       if (!raw) return raw;
       if (!/^https?:\/\//i.test(raw)) {
@@ -91,7 +97,10 @@ export default function ProductPage() {
                     alt={String(product?.name || 'Product')}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                      try {
+                        const el = (e.currentTarget as HTMLImageElement);
+                        el.style.visibility = 'hidden';
+                      } catch {}
                     }}
                   />
                 ) : (
@@ -108,7 +117,10 @@ export default function ProductPage() {
                       alt="thumb"
                       className="h-20 w-full object-cover rounded-md"
                       onError={(e) => {
-                        try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                        try {
+                          const el = (e.currentTarget as HTMLImageElement);
+                          el.style.visibility = 'hidden';
+                        } catch {}
                       }}
                     />
                   ))}

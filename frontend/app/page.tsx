@@ -122,7 +122,8 @@ export default async function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product) => {
               const imgs = typeof product.images === 'string' ? product.images.split(',').map(s => s.trim()).filter(Boolean) : [];
-              const raw = imgs[0];
+              const httpsFirst = imgs.find((u) => /^https?:\/\//i.test(u)) || imgs[0];
+              const raw = httpsFirst;
               let firstImage = raw || '';
               if (firstImage) {
                 if (!/^https?:\/\//i.test(firstImage)) {
@@ -148,7 +149,10 @@ export default async function Home() {
                         alt={product.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                          try {
+                            const el = (e.currentTarget as HTMLImageElement);
+                            el.style.visibility = 'hidden';
+                          } catch {}
                         }}
                       />
                     ) : (

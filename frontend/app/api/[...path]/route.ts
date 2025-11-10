@@ -33,7 +33,12 @@ async function forward(req: NextRequest, segments: string[]) {
     cache: 'no-store',
   };
   try {
-    const res = await fetch(target, init);
+    let res = await fetch(target, init);
+    // Fallback: if backend uses an extra '/api' prefix, retry once
+    if (res.status === 404 && segments.length && segments[0] !== 'api') {
+      const prefixed = buildTargetUrl(req, ['api', ...segments]);
+      res = await fetch(prefixed, init);
+    }
     const resHeaders = new Headers(res.headers);
     // Remove hop-by-hop headers
     resHeaders.delete('transfer-encoding');

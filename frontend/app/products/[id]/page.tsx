@@ -55,7 +55,7 @@ export default function ProductPage() {
       try {
         const u = new URL(raw);
         if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-          const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+          const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\/+/, ''))}`;
           return `${uploadsBase}${rel}`;
         }
       } catch {}

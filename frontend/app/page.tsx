@@ -131,7 +131,7 @@ export default async function Home() {
                   try {
                     const u = new URL(firstImage);
                     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-                      const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+                      const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\/+/, ''))}`;
                       firstImage = `${uploadsBase}${rel}`;
                     }
                   } catch {}

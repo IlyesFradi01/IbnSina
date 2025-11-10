@@ -100,7 +100,7 @@ export default function Products() {
           try {
             const u = new URL(image);
             if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-              const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+              const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\/+/, ''))}`;
               image = `${uploadsBase}${rel}`;
             }
           } catch {}
@@ -233,7 +233,7 @@ export default function Products() {
                               try {
                                 const u = new URL(raw);
                                 if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-                                  const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+                                  const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\/+/, ''))}`;
                                   src = `${uploadsBase}${rel}`;
                                 }
                               } catch {}
@@ -256,7 +256,7 @@ export default function Products() {
                               try {
                                 const u = new URL(raw);
                                 if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-                                  const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+                                  const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\/+/, ''))}`;
                                   src = `${uploadsBase}${rel}`;
                                 }
                               } catch {}

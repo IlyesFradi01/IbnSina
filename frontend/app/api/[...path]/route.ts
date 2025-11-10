@@ -43,6 +43,11 @@ async function forward(req: NextRequest, segments: string[]) {
     // Remove hop-by-hop headers
     resHeaders.delete('transfer-encoding');
     resHeaders.delete('connection');
+    // Add diagnostics header for visibility
+    try {
+      resHeaders.set('x-proxy-backend-url', BACKEND_URL || '');
+      resHeaders.set('x-proxy-request-path', `/${segments.join('/')}${req.nextUrl.search}`);
+    } catch {}
     return new Response(res.body, {
       status: res.status,
       statusText: res.statusText,

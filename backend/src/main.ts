@@ -22,14 +22,35 @@ async function bootstrap() {
     // ignore
   }
   
-  // Enable CORS for frontend
+  // Enable CORS for frontend (local + Vercel + custom via env)
+  const staticOrigins = new Set<string>([
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
+  ]);
+  const envOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  envOrigins.forEach((o) => staticOrigins.add(o));
+  const vercelRegex = /\.vercel\.app$/i;
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:3003'
-    ],
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      try {
+        const url = new URL(origin);
+        const host = url.hostname;
+        if (staticOrigins.has(origin) || vercelRegex.test(host)) {
+          return callback(null, true);
+        }
+      } catch {
+        // ignore parse errors
+      }
+      return callback(new Error('Not allowed by CORS'), false);
+    },
     credentials: true,
   });
   

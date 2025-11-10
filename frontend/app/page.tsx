@@ -124,8 +124,18 @@ export default async function Home() {
               const imgs = typeof product.images === 'string' ? product.images.split(',').map(s => s.trim()).filter(Boolean) : [];
               const raw = imgs[0];
               let firstImage = raw || '';
-              if (firstImage && !/^https?:\/\//i.test(firstImage)) {
-                firstImage = firstImage.startsWith('/uploads') ? `${uploadsBase}${firstImage}` : `${uploadsBase}/uploads/${encodeURIComponent(firstImage)}`;
+              if (firstImage) {
+                if (!/^https?:\/\//i.test(firstImage)) {
+                  firstImage = firstImage.startsWith('/uploads') ? `${uploadsBase}${firstImage}` : `${uploadsBase}/uploads/${encodeURIComponent(firstImage)}`;
+                } else {
+                  try {
+                    const u = new URL(firstImage);
+                    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+                      const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+                      firstImage = `${uploadsBase}${rel}`;
+                    }
+                  } catch {}
+                }
               }
               return (
               <div key={product._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">

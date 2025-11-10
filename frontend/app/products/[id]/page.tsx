@@ -48,8 +48,18 @@ export default function ProductPage() {
       ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean)
       : [];
     return images.map((raw) => {
-      if (!raw || /^https?:\/\//i.test(raw)) return raw;
-      return raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
+      if (!raw) return raw;
+      if (!/^https?:\/\//i.test(raw)) {
+        return raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
+      }
+      try {
+        const u = new URL(raw);
+        if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+          const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+          return `${uploadsBase}${rel}`;
+        }
+      } catch {}
+      return raw;
     });
   }, [product, apiBase]);
 

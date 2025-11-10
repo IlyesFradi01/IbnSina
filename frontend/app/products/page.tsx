@@ -93,8 +93,18 @@ export default function Products() {
       const price = Number(p?.price || 0);
       const imgs = typeof p?.images === 'string' ? p.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
       let image = imgs[0] || '';
-      if (image && !/^https?:\/\//i.test(image)) {
-        image = image.startsWith('/uploads') ? `${uploadsBase}${image}` : `${uploadsBase}/uploads/${encodeURIComponent(image)}`;
+      if (image) {
+        if (!/^https?:\/\//i.test(image)) {
+          image = image.startsWith('/uploads') ? `${uploadsBase}${image}` : `${uploadsBase}/uploads/${encodeURIComponent(image)}`;
+        } else {
+          try {
+            const u = new URL(image);
+            if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+              const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+              image = `${uploadsBase}${rel}`;
+            }
+          } catch {}
+        }
       }
       const raw = localStorage.getItem('cart') || '[]';
       const cart = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
@@ -219,6 +229,14 @@ export default function Products() {
                             let src = raw;
                             if (!/^https?:\/\//i.test(raw)) {
                               src = raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
+                            } else {
+                              try {
+                                const u = new URL(raw);
+                                if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+                                  const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+                                  src = `${uploadsBase}${rel}`;
+                                }
+                              } catch {}
                             }
                             // eslint-disable-next-line @next/next/no-img-element
                             return <img src={src} alt={product.name} className="w-full h-full object-cover" />;
@@ -234,6 +252,14 @@ export default function Products() {
                             let src = raw;
                             if (!/^https?:\/\//i.test(raw)) {
                               src = raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
+                            } else {
+                              try {
+                                const u = new URL(raw);
+                                if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+                                  const rel = u.pathname.startsWith('/uploads') ? u.pathname : `/uploads/${encodeURIComponent(u.pathname.replace(/^\\/+/, ''))}`;
+                                  src = `${uploadsBase}${rel}`;
+                                }
+                              } catch {}
                             }
                             // eslint-disable-next-line @next/next/no-img-element
                             return <img src={src} alt={product.name} className="w-full h-full object-cover" />;

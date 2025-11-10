@@ -11,7 +11,7 @@ import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport } fro
 
 export default function NewProduct() {
   const router = useRouter();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ibnsina-backend.onrender.com';
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -47,7 +47,7 @@ export default function NewProduct() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ibnsina-backend.onrender.com';
         const res = await fetch(`${apiUrl}/categories`, { cache: 'no-store' });
         if (!res.ok) {
           const txt = await res.text();
@@ -100,11 +100,14 @@ export default function NewProduct() {
           if (!data?.secure_url) {
             throw new Error('No secure_url from Cloudinary');
           }
-          uploaded.push(String(data.secure_url));
+          const secureUrl = String(data.secure_url);
+          uploaded.push(secureUrl);
+          console.log('✅ Uploaded to Cloudinary:', secureUrl);
         }
         setImages(prev => [...uploaded, ...prev]);
-        showToast('success', 'Images uploaded');
+        showToast('success', `Images uploaded to Cloudinary (${uploaded.length})`);
       } else {
+        console.warn('⚠️ Cloudinary not configured. Falling back to backend upload.');
         // Fallback to backend uploader
         const form = new FormData();
         files.forEach((f) => form.append('files', f));

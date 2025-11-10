@@ -43,7 +43,7 @@ export default function EditProduct() {
       setLoadingProduct(false);
       return;
     }
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ibnsina-backend.onrender.com';
 
     const loadCategories = async () => {
       try {
@@ -128,12 +128,15 @@ export default function EditProduct() {
           }
           const data = await res.json();
           if (!data?.secure_url) throw new Error('No secure_url from Cloudinary');
-          uploaded.push(String(data.secure_url));
+          const secureUrl = String(data.secure_url);
+          uploaded.push(secureUrl);
+          console.log('✅ Uploaded to Cloudinary:', secureUrl);
         }
         // Put newly uploaded images first so they show on the storefront
         setImages(prev => [...uploaded, ...prev]);
       } else {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+        console.warn('⚠️ Cloudinary not configured. Falling back to backend upload.');
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ibnsina-backend.onrender.com';
         const form = new FormData();
         files.forEach((f) => form.append('files', f));
         const res = await fetch(`${apiUrl}/uploads`, { method: 'POST', body: form });
@@ -161,7 +164,7 @@ export default function EditProduct() {
     setError(null);
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://ibnsina-backend.onrender.com';
       // Normalize, trim, and deduplicate images, preserving order
       const normalized = Array.from(new Set(images.map((s) => String(s).trim()).filter(Boolean)));
       const payload: any = {

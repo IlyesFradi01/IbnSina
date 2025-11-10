@@ -30,7 +30,37 @@ export class UploadsController {
 
   @Post()
   @UseInterceptors(FilesInterceptor('files'))
-  upload(@UploadedFiles() files: any[], @Req() req: Request) {
+  async upload(@UploadedFiles() files: any[], @Req() req: Request) {
+    const cloudOk = configureCloudinaryFromEnv();
+    if (cloudOk && files && files.length > 0) {
+      // Upload to Cloudinary if configured
+      const urls: string[] = [];
+      for (const file of files) {
+        try {
+          // Multer stores files with a 'path' property pointing to the temp file
+          const filePath = file.path || resolve('./uploads', file.filename);
+          if (fs.existsSync(filePath)) {
+            const uploaded = await cloudinary.uploader.upload(filePath, {
+              folder: 'ibnsina/products',
+              use_filename: true,
+              unique_filename: true,
+              resource_type: 'image',
+            });
+            if (uploaded?.secure_url) {
+              urls.push(uploaded.secure_url);
+              // Clean up local file after upload
+              try { fs.unlinkSync(filePath); } catch {}
+            }
+          }
+        } catch (err) {
+          console.error('Cloudinary upload error:', err);
+        }
+      }
+      if (urls.length > 0) {
+        return { urls };
+      }
+    }
+    // Fallback to local storage (ephemeral on Render)
     const host = `${req.protocol}://${req.get('host')}`;
     const urls = (files || []).map((f) => `${host}/uploads/${encodeURIComponent(f.filename)}`);
     return { urls };

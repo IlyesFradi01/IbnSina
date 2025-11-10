@@ -54,8 +54,7 @@ export default function OrderDetailsPage() {
       setLoading(true);
       setError(null);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
-        const res = await fetch(`${apiUrl}/orders/${id}`, { cache: 'no-store' });
+        const res = await fetch(`/api/orders/${id}`, { cache: 'no-store' });
         if (!res.ok) {
           const t = await res.text();
           throw new Error(t || 'Failed to load order');

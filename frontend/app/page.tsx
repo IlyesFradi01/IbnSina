@@ -19,9 +19,9 @@ type FeaturedProduct = {
 };
 
 async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002';
+  const API_URL = ''; // use relative proxy
   try {
-    const res = await fetch(`${API_URL}/products/featured`, { cache: 'no-store' });
+    const res = await fetch(`/api/products/featured`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to fetch featured products');
     const data: FeaturedProduct[] = await res.json();
     const featured = Array.isArray(data) ? data : [];
@@ -29,7 +29,7 @@ async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
 
     // Fallback: fetch latest products to fill remaining slots up to 4
     const fillCount = 4 - featured.length;
-    const allRes = await fetch(`${API_URL}/products`, { cache: 'no-store' });
+    const allRes = await fetch(`/api/products`, { cache: 'no-store' });
     const allData: FeaturedProduct[] = allRes.ok ? await allRes.json() : [];
     const existingIds = new Set(featured.map(p => p._id));
     const fillers = (Array.isArray(allData) ? allData : []).filter(p => !existingIds.has(p._id)).slice(0, fillCount);
@@ -41,7 +41,8 @@ async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
 
 export default async function Home() {
   const featuredProducts = await getFeaturedProducts();
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  const uploadsBase = apiBase || '/api';
 
   const categories = [
     { name: "Essential Oils", count: 45, image: "/api/placeholder/400/300" },
@@ -124,7 +125,7 @@ export default async function Home() {
               const raw = imgs[0];
               let firstImage = raw || '';
               if (firstImage && !/^https?:\/\//i.test(firstImage)) {
-                firstImage = firstImage.startsWith('/uploads') ? `${apiBase}${firstImage}` : `${apiBase}/uploads/${encodeURIComponent(firstImage)}`;
+                firstImage = firstImage.startsWith('/uploads') ? `${uploadsBase}${firstImage}` : `${uploadsBase}/uploads/${encodeURIComponent(firstImage)}`;
               }
               return (
               <div key={product._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow group">

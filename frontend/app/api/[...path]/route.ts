@@ -1,0 +1,76 @@
+import { NextRequest } from 'next/server';
+
+const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
+
+function buildTargetUrl(req: NextRequest, segments: string[]): string {
+  const path = segments.join('/');
+  const query = req.nextUrl.search;
+  const base = BACKEND_URL?.replace(/\/+$/, '') || '';
+  return `${base}/${path}${query}`;
+}
+
+async function forward(req: NextRequest, segments: string[]) {
+  if (!BACKEND_URL) {
+    return new Response('Backend URL not configured', { status: 500 });
+  }
+  const target = buildTargetUrl(req, segments);
+  const headers = new Headers();
+  // Forward user-defined headers except host-related
+  req.headers.forEach((value, key) => {
+    const k = key.toLowerCase();
+    if (k === 'host' || k === 'x-forwarded-host' || k === 'x-vercel-proxied-for') return;
+    headers.set(key, value);
+  });
+  // Ensure proper content-type for JSON passthrough if body exists
+  const init: RequestInit = {
+    method: req.method,
+    headers,
+    // Only pass body for methods that can have a body
+    body: ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
+      ? await req.arrayBuffer()
+      : undefined,
+    // Disable Next fetch caching for proxy
+    cache: 'no-store',
+  };
+  try {
+    const res = await fetch(target, init);
+    const resHeaders = new Headers(res.headers);
+    // Remove hop-by-hop headers
+    resHeaders.delete('transfer-encoding');
+    resHeaders.delete('connection');
+    return new Response(res.body, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: resHeaders,
+    });
+  } catch (err: any) {
+    const message = err?.message || 'Upstream fetch failed';
+    return new Response(message, { status: 502 });
+  }
+}
+
+export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path || []);
+}
+
+export async function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path || []);
+}
+
+export async function PUT(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path || []);
+}
+
+export async function PATCH(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path || []);
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path || []);
+}
+
+export async function OPTIONS(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return forward(req, params.path || []);
+}
+
+

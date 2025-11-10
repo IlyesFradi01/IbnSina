@@ -13,13 +13,13 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!id) return;
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    const apiBase = '';
     const controller = new AbortController();
     const run = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${apiBase}/products/${encodeURIComponent(id)}`, {
+        const res = await fetch(`/api/products/${encodeURIComponent(id)}`, {
           cache: 'no-store',
           signal: controller.signal,
         });
@@ -41,14 +41,15 @@ export default function ProductPage() {
     return () => controller.abort();
   }, [id]);
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  const uploadsBase = apiBase || '/api';
   const resolvedImages = useMemo(() => {
     const images: string[] = typeof product?.images === 'string'
       ? product.images.split(',').map((s: string) => s.trim()).filter(Boolean)
       : [];
     return images.map((raw) => {
       if (!raw || /^https?:\/\//i.test(raw)) return raw;
-      return raw.startsWith('/uploads') ? `${apiBase}${raw}` : `${apiBase}/uploads/${encodeURIComponent(raw)}`;
+      return raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
     });
   }, [product, apiBase]);
 

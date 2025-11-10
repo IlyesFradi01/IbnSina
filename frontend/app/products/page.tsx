@@ -21,14 +21,14 @@ export default function Products() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    const apiUrl = '';
     const load = async () => {
       setLoading(true);
       setError(null);
       try {
         const [pRes, cRes] = await Promise.all([
-          fetch(`${apiUrl}/products`, { cache: 'no-store' }),
-          fetch(`${apiUrl}/categories`, { cache: 'no-store' }),
+          fetch(`/api/products`, { cache: 'no-store' }),
+          fetch(`/api/categories`, { cache: 'no-store' }),
         ]);
         if (!pRes.ok) {
           const t = await pRes.text();
@@ -82,7 +82,8 @@ export default function Products() {
     return list;
   }, [products, searchTerm, selectedCategory, sortBy]);
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  const uploadsBase = apiBase || '/api';
 
   const addToCart = (p: any) => {
     try {
@@ -93,7 +94,7 @@ export default function Products() {
       const imgs = typeof p?.images === 'string' ? p.images.split(',').map((s: string) => s.trim()).filter(Boolean) : [];
       let image = imgs[0] || '';
       if (image && !/^https?:\/\//i.test(image)) {
-        image = image.startsWith('/uploads') ? `${apiBase}${image}` : `${apiBase}/uploads/${encodeURIComponent(image)}`;
+        image = image.startsWith('/uploads') ? `${uploadsBase}${image}` : `${uploadsBase}/uploads/${encodeURIComponent(image)}`;
       }
       const raw = localStorage.getItem('cart') || '[]';
       const cart = Array.isArray(JSON.parse(raw)) ? JSON.parse(raw) : [];
@@ -217,7 +218,7 @@ export default function Products() {
                             if (!raw || raw.startsWith('blob:')) return <span className="text-4xl">🌿</span>;
                             let src = raw;
                             if (!/^https?:\/\//i.test(raw)) {
-                              src = raw.startsWith('/uploads') ? `${apiBase}${raw}` : `${apiBase}/uploads/${encodeURIComponent(raw)}`;
+                              src = raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
                             }
                             // eslint-disable-next-line @next/next/no-img-element
                             return <img src={src} alt={product.name} className="w-full h-full object-cover" />;
@@ -232,7 +233,7 @@ export default function Products() {
                             if (!raw || raw.startsWith('blob:')) return <span className="text-4xl">🌿</span>;
                             let src = raw;
                             if (!/^https?:\/\//i.test(raw)) {
-                              src = raw.startsWith('/uploads') ? `${apiBase}${raw}` : `${apiBase}/uploads/${encodeURIComponent(raw)}`;
+                              src = raw.startsWith('/uploads') ? `${uploadsBase}${raw}` : `${uploadsBase}/uploads/${encodeURIComponent(raw)}`;
                             }
                             // eslint-disable-next-line @next/next/no-img-element
                             return <img src={src} alt={product.name} className="w-full h-full object-cover" />;

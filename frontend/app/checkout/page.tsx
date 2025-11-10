@@ -75,7 +75,7 @@ export default function CheckoutPage() {
       alert('Please complete the required fields.');
       return;
     }
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    const apiUrl = '';
     const payload = {
       email,
       emailOptIn,
@@ -90,7 +90,7 @@ export default function CheckoutPage() {
       total: Number(total.toFixed(3)),
     };
     try {
-      const res = await fetch(`${apiUrl}/orders`, {
+      const res = await fetch(`/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

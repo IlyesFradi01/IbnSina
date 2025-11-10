@@ -16,6 +16,25 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Environment variables
+
+This frontend is configured to call the backend through a built‑in proxy at `/api/*`. Set the backend base URL:
+
+Required (Vercel → Project → Settings → Environment Variables):
+
+- `BACKEND_URL = https://your-backend-domain` (must be HTTPS)
+
+Optional (only if you want to bypass the proxy in some places):
+
+- `NEXT_PUBLIC_API_URL = https://your-backend-domain`
+
+For local development, create a `.env.local` in `frontend/`:
+
+```
+BACKEND_URL=http://localhost:3002
+# NEXT_PUBLIC_API_URL=http://localhost:3002
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

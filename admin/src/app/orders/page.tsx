@@ -8,6 +8,10 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [details, setDetails] = useState<Record<string, any>>({});
+  const [detailsLoading, setDetailsLoading] = useState<Record<string, boolean>>({});
+  const [detailsError, setDetailsError] = useState<Record<string, string | null>>({});
   const apiUrl = useMemo(() => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002', []);
 
   const load = async () => {
@@ -53,6 +57,28 @@ export default function OrdersPage() {
     }
   };
 
+  const toggleExpand = async (id: string) => {
+    if (expandedId === id) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(id);
+    if (!details[id] && !detailsLoading[id]) {
+      setDetailsLoading(prev => ({ ...prev, [id]: true }));
+      setDetailsError(prev => ({ ...prev, [id]: null }));
+      try {
+        const res = await fetch(`${apiUrl}/orders/${id}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        setDetails(prev => ({ ...prev, [id]: data }));
+      } catch (e: any) {
+        setDetailsError(prev => ({ ...prev, [id]: e?.message || 'Failed to load order details' }));
+      } finally {
+        setDetailsLoading(prev => ({ ...prev, [id]: false }));
+      }
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
@@ -79,7 +105,8 @@ export default function OrdersPage() {
             </thead>
             <tbody className="divide-y">
               {orders.map((o: any) => (
-                <tr key={String(o._id)} className="hover:bg-gray-50">
+                <>
+                <tr key={String(o._id)} className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleExpand(String(o._id))}>
                   <td className="px-4 py-3 align-top">
                     <div className="font-medium text-black">#{String(o._id).slice(-6).toUpperCase()}</div>
                     <div className="text-gray-500">{new Date(o.createdAt).toLocaleString()}</div>
@@ -103,6 +130,7 @@ export default function OrdersPage() {
                       className="border border-gray-300 rounded px-2 py-1 text-sm"
                       value={o?.status}
                       onChange={(e) => updateStatus(String(o._id), e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
                     >
                       {STATUS_OPTIONS.map(s => (
                         <option key={s} value={s}>{s}</option>
@@ -110,6 +138,48 @@ export default function OrdersPage() {
                     </select>
                   </td>
                 </tr>
+                {expandedId === String(o._id) ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                      {detailsLoading[String(o._id)] ? (
+                        <div className="text-black">Loading order details…</div>
+                      ) : detailsError[String(o._id)] ? (
+                        <div className="text-red-600">{detailsError[String(o._id)]}</div>
+                      ) : (
+                        <div className="bg-white border border-gray-200 rounded p-4">
+                          <div className="text-sm text-gray-900 font-semibold mb-3">Products in this order</div>
+                          {Array.isArray(details[String(o._id)]?.items) && details[String(o._id)].items.length > 0 ? (
+                            <div className="divide-y">
+                              {details[String(o._id)].items.map((item: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between py-2 text-sm">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-10 h-10 bg-gray-200 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
+                                      {item?.image ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <span className="text-lg">🌿</span>
+                                      )}
+                                    </div>
+                                    <div className="truncate">
+                                      <div className="text-gray-900 truncate" title={item?.name}>{item?.name}</div>
+                                      {item?.size ? (<div className="text-gray-500">{item.size}</div>) : null}
+                                    </div>
+                                  </div>
+                                  <div className="text-gray-700">Qty: {item?.quantity}</div>
+                                  <div className="text-gray-900 font-medium">TND {Number(item?.price * item?.quantity || 0).toFixed(3)}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-sm text-gray-600">No products in this order.</div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ) : null}
+                </>
               ))}
             </tbody>
           </table>

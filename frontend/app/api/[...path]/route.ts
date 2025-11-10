@@ -1,12 +1,14 @@
 import { NextRequest } from 'next/server';
 
 const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || '';
+const PATH_PREFIX = (process.env.BACKEND_PATH_PREFIX || '').replace(/\/+$/, '');
 
 function buildTargetUrl(req: NextRequest, segments: string[]): string {
   const path = segments.join('/');
   const query = req.nextUrl.search;
   const base = BACKEND_URL?.replace(/\/+$/, '') || '';
-  return `${base}/${path}${query}`;
+  const prefix = PATH_PREFIX ? `${PATH_PREFIX.replace(/^\/?/, '/')}` : '';
+  return `${base}${prefix}/${path}${query}`;
 }
 
 async function forward(req: NextRequest, segments: string[]) {

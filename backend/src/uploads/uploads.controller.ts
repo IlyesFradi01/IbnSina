@@ -48,8 +48,11 @@ export class UploadsController {
     }
     const uploadsDirs = [
       resolve(process.cwd(), 'uploads'),
+      resolve(process.cwd(), '..', 'uploads'),
+      resolve(process.cwd(), 'backend', 'uploads'),
       resolve(__dirname, '..', '..', 'uploads'),
       resolve(__dirname, '..', 'uploads'),
+      resolve(__dirname, '..', '..', '..', 'uploads'),
     ];
     const products = await this.productModel.find({}).exec();
     const results: Array<{ id: string; updated: boolean; count: number; errors?: number }> = [];

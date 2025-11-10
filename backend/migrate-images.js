@@ -34,6 +34,7 @@ async function migrate() {
     console.log('🔌 Connecting to MongoDB...');
     await mongoose.connect(mongoUri);
     console.log('✅ Connected to MongoDB');
+    console.log('📁 Database in use:', mongoose.connection.name);
 
     const uploadsDir = path.join(__dirname, 'uploads');
     if (!fs.existsSync(uploadsDir)) {
@@ -113,10 +114,12 @@ async function migrate() {
 
       // Update product if we have new URLs
       if (newUrls.length > 0 && newUrls.join(',') !== raw) {
-        product.images = newUrls.join(',');
-        await product.save();
-        results.push({ id: String(product._id), updated: true, count: newUrls.length, errors });
+        const nextImages = newUrls.join(',');
+        await Product.updateOne({ _id: product._id }, { images: nextImages });
+        const verify = await Product.findById(product._id).lean();
+        results.push({ id: String(product._id), updated: true, count: newUrls.length, errors, savedImages: verify?.images });
         console.log(`✅ Updated product ${product._id} with ${newUrls.length} image(s)`);
+        console.log(`   ↪ Saved images: ${verify?.images}`);
       } else {
         results.push({ id: String(product._id), updated: false, count: newUrls.length, errors });
       }

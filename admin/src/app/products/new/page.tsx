@@ -161,6 +161,7 @@ export default function NewProduct() {
     
     try {
       const normalizedImages = Array.from(new Set(images.map((s) => String(s).trim()).filter(Boolean)));
+      console.log('📤 Saving product with images:', normalizedImages);
       const payload = {
         ...formData,
         price: Number(formData.price),
@@ -169,6 +170,7 @@ export default function NewProduct() {
         categoryId: formData.categoryId || undefined,
         images: normalizedImages.join(','),
       };
+      console.log('📦 Payload images field:', payload.images);
       const res = await fetch(`${apiUrl}/products/open`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,6 +190,9 @@ export default function NewProduct() {
         showToast('error', message);
         throw new Error(message || `API error: ${res.status}`);
       }
+      const created = await res.json();
+      console.log('✅ Product created:', created);
+      console.log('🖼️ Saved images:', created?.images);
       showToast('success', 'Product created successfully');
       setTimeout(() => {
         router.push('/products');
@@ -368,7 +373,14 @@ export default function NewProduct() {
 
           {/* Images */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Images</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Product Images</h2>
+              {(!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET) && (
+                <div className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                  ⚠️ Cloudinary not configured - using backend upload
+                </div>
+              )}
+            </div>
             <div className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
                 <div className="text-center">

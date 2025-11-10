@@ -84,7 +84,7 @@ export default function NewProduct() {
       const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
       const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
       if (cloud && preset) {
-        // Upload directly to Cloudinary
+        // Upload directly to Cloudinary (prepend new images so they appear first)
         const uploaded: string[] = [];
         for (const file of files) {
           const form = new FormData();
@@ -102,7 +102,7 @@ export default function NewProduct() {
           }
           uploaded.push(String(data.secure_url));
         }
-        setImages(prev => [...prev, ...uploaded]);
+        setImages(prev => [...uploaded, ...prev]);
         showToast('success', 'Images uploaded');
       } else {
         // Fallback to backend uploader
@@ -116,7 +116,7 @@ export default function NewProduct() {
         const data = await res.json();
         const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
         if (urls.length === 0) throw new Error('No URLs returned from upload');
-        setImages(prev => [...prev, ...urls]);
+        setImages(prev => [...urls, ...prev]);
       }
     } catch (err: any) {
       setError(err?.message || 'Image upload failed');
@@ -157,13 +157,14 @@ export default function NewProduct() {
     setError(null);
     
     try {
+      const normalizedImages = Array.from(new Set(images.map((s) => String(s).trim()).filter(Boolean)));
       const payload = {
         ...formData,
         price: Number(formData.price),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
         stock: Number(formData.stock),
         categoryId: formData.categoryId || undefined,
-        images: images.join(','),
+        images: normalizedImages.join(','),
       };
       const res = await fetch(`${apiUrl}/products/open`, {
         method: 'POST',

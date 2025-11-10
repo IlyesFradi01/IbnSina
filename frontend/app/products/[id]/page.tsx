@@ -86,8 +86,14 @@ export default function ProductPage() {
               <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg flex items-center justify-center overflow-hidden">
                 {resolvedImages[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={resolvedImages[0]} alt={String(product?.name || 'Product')}
-                    className="w-full h-full object-cover" />
+                  <img
+                    src={resolvedImages[0]}
+                    alt={String(product?.name || 'Product')}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                    }}
+                  />
                 ) : (
                   <span className="text-6xl">🌿</span>
                 )}
@@ -96,7 +102,15 @@ export default function ProductPage() {
                 <div className="mt-4 grid grid-cols-4 gap-2">
                   {resolvedImages.slice(1, 5).map((src, idx) => (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img key={idx} src={src} alt="thumb" className="h-20 w-full object-cover rounded-md" />
+                    <img
+                      key={idx}
+                      src={src}
+                      alt="thumb"
+                      className="h-20 w-full object-cover rounded-md"
+                      onError={(e) => {
+                        try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                      }}
+                    />
                   ))}
                 </div>
               )}

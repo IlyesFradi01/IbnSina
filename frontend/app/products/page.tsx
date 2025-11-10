@@ -239,7 +239,16 @@ export default function Products() {
                               } catch {}
                             }
                             // eslint-disable-next-line @next/next/no-img-element
-                            return <img src={src} alt={product.name} className="w-full h-full object-cover" />;
+                            return (
+                              <img
+                                src={src}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                                }}
+                              />
+                            );
                           })()}
                         </div>
                       </Link>
@@ -262,7 +271,16 @@ export default function Products() {
                               } catch {}
                             }
                             // eslint-disable-next-line @next/next/no-img-element
-                            return <img src={src} alt={product.name} className="w-full h-full object-cover" />;
+                            return (
+                              <img
+                                src={src}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                                }}
+                              />
+                            );
                           })()}
                         </div>
                       )}

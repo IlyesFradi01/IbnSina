@@ -143,7 +143,14 @@ export default async function Home() {
                   <div className="aspect-square bg-gradient-to-br from-green-100 to-emerald-200 rounded-t-xl flex items-center justify-center overflow-hidden">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     {firstImage ? (
-                      <img src={firstImage} alt={product.name} className="w-full h-full object-cover" />
+                      <img
+                        src={firstImage}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          try { (e.currentTarget as HTMLImageElement).src = '/logo.jpg'; } catch {}
+                        }}
+                      />
                     ) : (
                       <span className="text-4xl">🌿</span>
                     )}

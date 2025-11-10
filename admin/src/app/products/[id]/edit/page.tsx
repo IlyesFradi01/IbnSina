@@ -112,17 +112,38 @@ export default function EditProduct() {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
-      const form = new FormData();
-      files.forEach((f) => form.append('files', f));
-      const res = await fetch(`${apiUrl}/uploads`, { method: 'POST', body: form });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Upload failed: ${res.status} ${txt}`);
+      const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
+      const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
+      if (cloud && preset) {
+        const uploaded: string[] = [];
+        for (const file of files) {
+          const form = new FormData();
+          form.append('file', file);
+          form.append('upload_preset', preset);
+          const url = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/image/upload`;
+          const res = await fetch(url, { method: 'POST', body: form });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Cloud upload failed: ${res.status} ${txt}`);
+          }
+          const data = await res.json();
+          if (!data?.secure_url) throw new Error('No secure_url from Cloudinary');
+          uploaded.push(String(data.secure_url));
+        }
+        setImages(prev => [...prev, ...uploaded]);
+      } else {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+        const form = new FormData();
+        files.forEach((f) => form.append('files', f));
+        const res = await fetch(`${apiUrl}/uploads`, { method: 'POST', body: form });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Upload failed: ${res.status} ${txt}`);
+        }
+        const data = await res.json();
+        const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
+        setImages(prev => [...prev, ...urls]);
       }
-      const data = await res.json();
-      const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
-      setImages(prev => [...prev, ...urls]);
     } catch (err) {
       setError((err as any)?.message || 'Image upload failed');
     }

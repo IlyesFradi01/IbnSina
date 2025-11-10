@@ -81,17 +81,43 @@ export default function NewProduct() {
     if (files.length === 0) return;
     setUploading(true);
     try {
-      const form = new FormData();
-      files.forEach((f) => form.append('files', f));
-      const res = await fetch(`${apiUrl}/uploads`, { method: 'POST', body: form });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Upload failed: ${res.status} ${txt}`);
+      const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || '';
+      const preset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || '';
+      if (cloud && preset) {
+        // Upload directly to Cloudinary
+        const uploaded: string[] = [];
+        for (const file of files) {
+          const form = new FormData();
+          form.append('file', file);
+          form.append('upload_preset', preset);
+          const url = `https://api.cloudinary.com/v1_1/${encodeURIComponent(cloud)}/image/upload`;
+          const res = await fetch(url, { method: 'POST', body: form });
+          if (!res.ok) {
+            const txt = await res.text();
+            throw new Error(`Cloud upload failed: ${res.status} ${txt}`);
+          }
+          const data = await res.json();
+          if (!data?.secure_url) {
+            throw new Error('No secure_url from Cloudinary');
+          }
+          uploaded.push(String(data.secure_url));
+        }
+        setImages(prev => [...prev, ...uploaded]);
+        showToast('success', 'Images uploaded');
+      } else {
+        // Fallback to backend uploader
+        const form = new FormData();
+        files.forEach((f) => form.append('files', f));
+        const res = await fetch(`${apiUrl}/uploads`, { method: 'POST', body: form });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Upload failed: ${res.status} ${txt}`);
+        }
+        const data = await res.json();
+        const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
+        if (urls.length === 0) throw new Error('No URLs returned from upload');
+        setImages(prev => [...prev, ...urls]);
       }
-      const data = await res.json();
-      const urls: string[] = Array.isArray(data?.urls) ? data.urls : [];
-      if (urls.length === 0) throw new Error('No URLs returned from upload');
-      setImages(prev => [...prev, ...urls]);
     } catch (err: any) {
       setError(err?.message || 'Image upload failed');
       showToast('error', err?.message || 'Image upload failed');

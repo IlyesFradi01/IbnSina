@@ -46,7 +46,11 @@ export class UploadsController {
     if (!cloudOk) {
       return { ok: false, message: 'Cloudinary is not configured. Set CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME/API_KEY/SECRET' };
     }
-    const uploadsDir = resolve(__dirname, '..', 'uploads');
+    const uploadsDirs = [
+      resolve(process.cwd(), 'uploads'),
+      resolve(__dirname, '..', '..', 'uploads'),
+      resolve(__dirname, '..', 'uploads'),
+    ];
     const products = await this.productModel.find({}).exec();
     const results: Array<{ id: string; updated: boolean; count: number; errors?: number }> = [];
     for (const p of products) {
@@ -91,9 +95,16 @@ export class UploadsController {
           : normalised.startsWith('/uploads/')
             ? normalised.replace(/^\/+uploads\/+/, '')
             : normalised;
-        const filePath = resolve(uploadsDir, relativePath);
+        let filePath = '';
+        for (const dir of uploadsDirs) {
+          const candidatePath = resolve(dir, relativePath);
+          if (fs.existsSync(candidatePath)) {
+            filePath = candidatePath;
+            break;
+          }
+        }
         try {
-          if (!fs.existsSync(filePath)) {
+          if (!filePath) {
             errors++;
             continue;
           }

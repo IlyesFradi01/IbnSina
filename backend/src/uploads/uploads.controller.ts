@@ -59,11 +59,39 @@ export class UploadsController {
       const newUrls: string[] = [];
       let errors = 0;
       for (const name of names) {
+        let candidate = name;
         if (/^https?:\/\//i.test(name)) {
-          newUrls.push(name);
-          continue;
+          try {
+            const url = new URL(name);
+            const host = (url.hostname || '').toLowerCase();
+            const localHosts = ['localhost', '127.0.0.1'];
+            const backendHost = (process.env.BACKEND_PUBLIC_HOST || process.env.BACKEND_PUBLIC_URL || '').toLowerCase();
+            const renderHostname = (process.env.RENDER_EXTERNAL_URL || '').toLowerCase();
+            const isLocalHost = localHosts.includes(host);
+            const matchesBackendHost = backendHost ? backendHost === host : false;
+            const matchesRenderHost = renderHostname ? renderHostname === host : false;
+            if (isLocalHost || matchesBackendHost || matchesRenderHost) {
+              candidate = url.pathname || '';
+            } else if (url.pathname.startsWith('/uploads/')) {
+              // If pointing to another domain but still uploads path, fallback to using pathname
+              candidate = url.pathname;
+            } else {
+              newUrls.push(name);
+              continue;
+            }
+          } catch {
+            // If URL parsing fails, treat it as local path
+            candidate = name;
+          }
         }
-        const filePath = name.startsWith('/uploads') ? resolve(uploadsDir, name.replace(/^\/+?uploads\/?/, '')) : resolve(uploadsDir, name);
+        const sanitized = candidate.replace(/^https?:\/\//i, '');
+        const normalised = sanitized.replace(/^\/+/, '');
+        const relativePath = normalised.startsWith('uploads/')
+          ? normalised.replace(/^uploads\/+/, '')
+          : normalised.startsWith('/uploads/')
+            ? normalised.replace(/^\/+uploads\/+/, '')
+            : normalised;
+        const filePath = resolve(uploadsDir, relativePath);
         try {
           if (!fs.existsSync(filePath)) {
             errors++;

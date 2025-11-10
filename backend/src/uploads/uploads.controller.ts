@@ -107,18 +107,48 @@ export class UploadsController {
           }
         }
         try {
-          if (!filePath) {
-            errors++;
-            continue;
+          let uploadedUrl: string | null = null;
+          if (filePath) {
+            const uploaded = await cloudinary.uploader.upload(filePath, {
+              folder: 'ibnsina/products',
+              use_filename: true,
+              unique_filename: true,
+              resource_type: 'image',
+            });
+            uploadedUrl = uploaded?.secure_url || null;
+          } else {
+            const legacyBase = process.env.LEGACY_UPLOADS_BASE_URL || '';
+            if (legacyBase) {
+              const src = `${legacyBase.replace(/\/+$/, '')}/uploads/${encodeURIComponent(relativePath)}`;
+              try {
+                const resp = await fetch(src);
+                if (resp.ok) {
+                  const arrayBuffer = await resp.arrayBuffer();
+                  const buffer = Buffer.from(arrayBuffer);
+                  const uploaded = await new Promise<any>((resolveUpload, rejectUpload) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                      {
+                        folder: 'ibnsina/products',
+                        use_filename: true,
+                        unique_filename: true,
+                        resource_type: 'image',
+                      },
+                      (error, result) => {
+                        if (error) rejectUpload(error);
+                        else resolveUpload(result);
+                      }
+                    );
+                    stream.end(buffer);
+                  });
+                  uploadedUrl = uploaded?.secure_url || null;
+                }
+              } catch {
+                // ignore fetch/upload errors; will count as error below
+              }
+            }
           }
-          const uploaded = await cloudinary.uploader.upload(filePath, {
-            folder: 'ibnsina/products',
-            use_filename: true,
-            unique_filename: true,
-            resource_type: 'image',
-          });
-          if (uploaded?.secure_url) {
-            newUrls.push(uploaded.secure_url);
+          if (uploadedUrl) {
+            newUrls.push(uploadedUrl);
           } else {
             errors++;
           }

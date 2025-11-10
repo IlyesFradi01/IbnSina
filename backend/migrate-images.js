@@ -74,12 +74,16 @@ async function migrate() {
 
         // Extract filename from localhost URL or plain filename
         let filename = name;
-        if (name.includes('localhost:3002/uploads/')) {
+        if (name.includes('localhost:3002/uploads/') || name.includes('127.0.0.1:3002/uploads/')) {
           filename = name.split('/uploads/')[1];
         } else if (name.startsWith('/uploads/')) {
           filename = name.replace(/^\/+uploads\/+/, '');
         } else if (name.includes('uploads/')) {
           filename = name.split('uploads/')[1];
+        } else if (/^https?:\/\//i.test(name)) {
+          // Skip other http URLs (like external images)
+          newUrls.push(name);
+          continue;
         }
 
         const filePath = path.join(uploadsDir, filename);

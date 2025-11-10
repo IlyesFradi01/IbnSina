@@ -45,12 +45,17 @@ async function forward(req: NextRequest, segments: string[]) {
     // Remove hop-by-hop headers
     resHeaders.delete('transfer-encoding');
     resHeaders.delete('connection');
+    // Remove encoding/length to avoid double-decoding issues in browsers
+    resHeaders.delete('content-encoding');
+    resHeaders.delete('content-length');
     // Add diagnostics header for visibility
     try {
       resHeaders.set('x-proxy-backend-url', BACKEND_URL || '');
       resHeaders.set('x-proxy-request-path', `/${segments.join('/')}${req.nextUrl.search}`);
     } catch {}
-    return new Response(res.body, {
+    // Send a clean body buffer
+    const body = await res.arrayBuffer();
+    return new Response(body, {
       status: res.status,
       statusText: res.statusText,
       headers: resHeaders,
